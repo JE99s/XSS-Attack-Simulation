@@ -102,58 +102,71 @@ time with Samy’s cookies displayed.
 <br />
 I'm going to save this cookie value for future purposes.
 <br />
-<h3>Analyzing DLLs</h3>
-Dynamic-Link Libraries (.dll or DLLs) are modules that contain functions (code) and data that can be used 
-by either another DLL or a program and have the ability to be used simultaneously by different data 
-structures. Inspecting the DLLs of processes can greatly assist in connecting processes and their correlation 
-with other programs. I will be using the <b>dlllist</b> plugin command for Volatility to print a list of all running 
-DLLs for each process. I will use this plugin command specifically on poisonivy.exe. To print DLLs that are 
-respective to a specific process, I use the -p flag and provide the PID of that process after the <b>dlllist</b> command.
-Here, <i>poisonivy.exe</i> has quite a few DLLs, one of them being <b>kernel32.dll</b>. This kind of process being in system files is alarming to me.
+<h3>Stealing Cookies from the Victim's Machine</h3>
+The JavaScript I utilized printed out the user's cookies in the alert window. However, only the user could see those cookies, not the attacker. So, I will attempt to adjust the JavaScript program such that the attacker can have the code send the cookies to them. In doing so, the JavaScript code needs to send an HTTP request to the attacker, with the cookies appended to the request. <br /> <br />
+
+At this point I have switched users on the attacker and victim machine. Now, I have the user, Alice ( the attacker), signed into the Elgg web application on the attacker machine, and I have another user, Samy (victim), signed into the Elgg web application on the victim machine.
+
+I proceed by revising the JavaScript code to insert an <b><img></b> tag with its <b>src</b> attribute set to the attacker's machine. So, when JavaScript inserts the <b><img></b> tag, the browser tries to load the image from the URL in the <b>src</b> field; this results in the an HTTP GET request sent to the attacker's machine. I will update the program in the '<b>brief description</b>' field in Alice's profile page. The revised JavaScript is shown below:
 <br/>
-<img src="https://i.imgur.com/jVbr5Fp.png" height="85%" width="85%" alt="DLLLIST FOR POISONIVY.EXE PROCESS"/>
+<img src="https://i.imgur.com/nKB66Ep.png" height="95%" width="95%" alt="new JS script for attacker to grab victim's cookies"/>
 <br />
-
-
-<h3>Malware Analysis</h3>
-<h4>Poisonivy.exe</h4>
-To confirm that this process is a malicious program I will be getting the hash of the <i>poisonivy.exe</i> file. Before that, I will need to dump the memory addresses of the executable to the disk of my Kali Linux box. The Volatility Framework tool has a plugin called <b>procdump</b> that allows me to dump the memory of the process to essentially recreate it on my disk for further analysis. I execute the <b>procdump</b> plugin command and it produces a <i>.exe</i> file named <i>executable.480.exe</i> in the current directory I'm in. Next, I get the MD5 hash by executing <b><i>md5sum executable.480.exe</i></b> to get the MD5 hash from the file. I have VirusTotal opened, I enter the hash and commence the scan.
-<br />
-Here, I see that 66 out of 72 security vendors have flagged this file as malicious from the scan. This most likely some type of malware.
+The code above sends cookies to port 5555 of the attacker's machine, where the attacker has a TCP server listening on that same port. The server will essentially print out whatever it receives. The TCP server program is in the <b>echoserver</b> directory on the attacker machine.
 <br/>
-<img src="https://i.imgur.com/wDzHOv2.png" height="85%" width="85%" alt="VIRUSTOTAL SCAN OF POISONIVY.EXE"/>
+<img src="https://i.imgur.com/5MaC4Eu.png" height="75%" width="75%" alt="echoserver location"/>
+<br />
+Once I've navigated to the <b>echoserver</b> directory of the attacker machine, I type <b><i>./echoserv 5555</i></b> then press <b>Enter</b> to start the port listener.
+<br/>
+<img src="https://i.imgur.com/mnf7St8.png" height="75%" width="75%" alt="run echoserver on port 5555"/>
+<br />
+I go back to the Firefox window on the victim machine and travel to the '<b>Members</b>' page under the '<b>More</b>' section on the top menu (blue ribbon) of the Elgg website so I can attempt to view Alice's profile page.
+<br/>
+<img src="https://i.imgur.com/4qxg76Q.png" height="75%" width="75%" alt="CLICK MEMBERS"/>
+<br />
+<br/>
+<img src="https://i.imgur.com/ycuH7X4.png" height="75%" width="75%" alt="CLICK ALICE"/>
+<br />
+Once the page loads, I go back to the attacker machine to check the TCP listener and here we have the captured cookies displayed with the HTTP GET request:
+<br/>
+<img src="https://i.imgur.com/KNyXMPl.png" height="75%" width="75%" alt="RECEIVED VICTIM'S COOKIES ON ECHOSERVER"/>
+<br />
+Notice how the captured cookies just now are the same as what we've seen captured earlier in the alert window that I save for future reference.
+<br/>
+<img src="https://i.imgur.com/1nujEAY.png" height="75%" width="75%" alt="Matching cookies under SAMY"/>
+<br />
+<h3>Session Hijacking Using the Stolen Cookies</h3>
+Now that the attacker has stolen the victim's cookies, they can do whatever the victim can do the Elgg web server, including adding and deleting friends. The attacker has essentially hijacked the victim's session. Now, I will launch this session hijacking attack and write a program to add a friend on behalf of the victim. <br /> <br />
+
+A Java program, located in the <b>HTTPSimpleForge</b> directory on the attacker machine, will simplify this task. After navigating to the directory, I execute the command <b><i>nano HTTPSimpleForge.java</i></b> to open the Java program with the nano editor.
+
+<br/>
+<img src="https://i.imgur.com/dO4PgFh.png" height="85%" width="85%" alt="Open HTTPSimpleForge with NANO"/>
 <br />
 
-I look to the <a href="https://attack.mitre.org/" target="_blank">MITRE ATT&CK</a> framework and search for the threat. This is indeed called <i>Poisonivy</i>, a remote administration tool (RAT) that acts as a backdoor to a compromised system. We're able to see this malware because it's memory resident. It's a known threat to Windows 2000, Windows XP, and Windows Server 2003 platforms. This malicious toolkit has been around for a while. There are variants of this malware that can be configured to any or all of the following:
+The program on the attacker machine should perform the following: 
+1) Opens a connection to the web server. 
+2) Sets the necessary HTTP header information. 
+3) Sends the request to web server. 
+4) Gets the response from web server.
 
-- Capture screen, audio, and webcam 
-- List active ports 
-- Log keystrokes 
-- Manage open windows 
-- Manage passwords 
-- Manage registry, processes, services, devices, and installed applications 
-- Perform multiple simultaneous transfers 
-- Perform remote shell 
-- Relay server 
-- Search files 
-- Share servers 
-- Update, restart, terminate itself
-
-Most versions of Poisonivy can copy itself into other files, like system files by forking itself into alternate data streams, avoiding detection. I believe the VirusTotal scan seals the deal in identifying that there is or 
-was malicious activity happening on this memory image. It says on VirusTotal that one of its imports is 
-kernel32.dll to use as an exit process. We know that kernel32.dll is in fact a running DLL for <i>poisonivy.exe</i> from the DLL analysis earlier. I'm going to utilize the <b>malfind</b> Volatility command to find any hidden and injected code associated with <i>poisonivy.exe</i>. Here, there is inject code shown through the memory addresses in the output, "Hacker.Defender" and ".kernel32.dll. I think these files or codes have been injected by <i>poisonivy.exe</i>
-<br />
-<img src="https://i.imgur.com/KKJzePt.png" height="75%" width="75%" alt="MALFIND VOLATILITY COMMAND ON POISONIVY.EXE PROCESS"/>
+<br/>
+<img src="https://i.imgur.com/nxTKGis.png" height="85%" width="85%" alt="Editing HTTPSimpleForge with NANO"/>
 <br />
 
-It is common for malware to hide in plain sight. A virus won't be located on the <b>Desktop</b> folder, but malware commonly replaces certain system files located in the <b>system32</b> folder or outside of it. Malware likes to pose as legitimate Windows processes, which enable them to keep hidden and perform actions like keylogging, transferring more malicious files, spreading viruses, and more. I want to check some necessary processes that could possibly be holding malware, enabling the malware, or even the malware itself. The malicious poisonivy.exe has copied itself in to the machine's WINDOWS\system32 folder.
+At first glance, I pay attention to the string variable, '<b>requestDetails</b>', assigned to two parameters: <b>__elgg_ts</b> and <b>__elgg_token</b>. These values will need to be correctly replaced with the values provided from the victim machine. However, let's examine where these variable parameters located on the Elgg web application itself.
 
 <br />
-<img src="https://i.imgur.com/dsVvchI.png" height="90%" width="90%" alt="VOLATILITY FILESCAN & GREP 4 POISONIVY.EXE COMMAND"/>
+<img src="https://i.imgur.com/GFhtVkK.png" height="85%" width="85%" alt="Variable param. of Add friend button"/>
 <br />
-I did a similar method in getting the hash of the kernel32.dll file. I used the <b>dlldump</b> plugin command for Volatility to recreate the DLL from the memory image.
+
+Since the program I want to write will essentially make a victim add the attacker as a friend when viewing the attacker's profile. I should look at the works behind the friend request. We'll look at the example above for adding the user, Samy, as a friend. With the inspector tool, I can see the code of the webpage. Notice the URL selected, those are the same parameters in the Java program. I need to take the values of the parameters contained in the URL link of the '<b>Add friend</b>' button of the user we want to add as a friend (the attacker, Alice) and assign those values to the <b>__elgg_ts</b> and <b>__elgg_token</b> parameters in the Java program. On the victim machine, as the user Samy, I will navigate to Alice's profile as I'm going to add Alice as a friend. I right-click the '<b>Add friend</b>' button and copy the link. I'll keep it for reference as shown below.
+
 <br />
-<img src="https://i.imgur.com/6r03Qsv.png" height="95%" width="95%" alt="DLLDUMP CMD"/>
+<img src="https://i.imgur.com/dI37sSj.png" height="90%" width="90%" alt="KEEP __ELGG_TS VALUE AS REFERENCE"/>
+<br />
+I first copy the value of the <b>__elgg_ts</b> parameter from the URL above and assign that value into the <b>__elgg_ts</b> parameter in the <b>HTTPSimpleForge.java</b> program.
+<br />
+<img src="https://i.imgur.com/cR0gA5u.png" height="95%" width="95%" alt="INSERT ELGG_TS VALUE INTO JAVA PROGRAM (SIMPLEFORGE)"/>
 <br />
 Once it was generated after executing the <b>dlldump</b> plugin command for Volatility, I got the MD5 hash and copied it to VirusTotal.
 <br />
