@@ -167,6 +167,7 @@ Since the program I want to write will essentially make a victim add the attacke
 I first copy the value of the <b>__elgg_ts</b> parameter from the URL above and assign that value into the <b>__elgg_ts</b> parameter in the <b>HTTPSimpleForge.java</b> program.
 <br />
 <img src="https://i.imgur.com/cR0gA5u.png" height="95%" width="95%" alt="INSERT ELGG_TS VALUE INTO JAVA PROGRAM (SIMPLEFORGE)"/>
+<b>Place: pg 12 of 23 starting at "Same thing goes for..."</b>
 <br />
 Once it was generated after executing the <b>dlldump</b> plugin command for Volatility, I got the MD5 hash and copied it to VirusTotal.
 <br />
