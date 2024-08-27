@@ -71,27 +71,37 @@ I place this snippet of code in the '<b>Brief description</b>' field of Alice's 
 When I log in as another user on the attacker machine. Samy, for example, I see the alert window 
 whenever I attempt to view Alice's profile.
 <br/>
-<img src="https://i.imgur.com/AOtWTGh.png" height="75%" width="75%" alt="ALERT WINDOW APPEARS"/>
-<br />
-<h3>Possible Network Connections</h3>
-The Volatility tool has the ability to analyze active, terminated, and hidden connections with their corresponding processes from three important plugin commands: <b>connections</b>, <b>connscan</b>, and <b>sockets</b>.
-<br />
-The <b>connections</b> plugin command lists active connections at the time of the memory image. It also displays local and remote IP addresses with their respective ports and PIDs. The <b>connections</b> command can be used for Windows XP. I execute the <b>connections</b> plugin command and the following displays:
-<br/>
-<img src="https://i.imgur.com/zuhTCkg.png" height="95%" width="95%" alt="CONNECTIONS PLUGIN CMD ATTEMPT"/>
-<br />
-I see that there are no active listed connections when using the <b>connections</b> command. I will try the <b>sockets</b> plugin command next. I execute the sockets plugin command and have no luck either in finding connections.
-<br/>
-<img src="https://i.imgur.com/9dX1Hhl.png" height="95%" width="95%" alt="SOCKETS PLUGIN CMD ATTEMPT"/>
+<img src="https://i.imgur.com/C60Crrk.png" height="75%" width="75%" alt="Login as another user (SAMY)"/>
 <br />
 
-Now, to see a list of connections that have been ended or terminated, I can use the **connscan** plugin command. This command is also used for Windows XP systems. I execute the **connscan** command. Here, I see the ports of the systems loopback address are cross-connected using ports 1031 and 6667. The PID of 1728 belongs to _iroffer.exe_, and the PID of 1480 belongs to _bircd.exe_. However, what catches my attention is the last recorded connection. 
 <br/>
-<img src="https://i.imgur.com/XkH2TQs.png" height="85%" width="85%" alt="CONNSCAN ON MEMORY IMG"/>
+<img src="https://i.imgur.com/7l2G88z.png" height="75%" width="75%" alt="Alert window appears once Alice's profile is clicked"/>
 <br />
-The remote address is a clearly different subnet, with a TCP port of 3460. The 480 PID corresponds to <i>poisonivy.exe</i>. This is an abnormal finding. I want to investigate this process, but I will continue to gain more information first.
+<h3>Posting a Malicious Message to Display Cookies</h3>
+Now, I will attempt to embed a JavaScript program in Alice’s Elgg profile, such that when another 
+user views the profile, the user’s cookies will display in the alert window I’ve just created earlier. This 
+can be done by adding some additional code to the JavaScript utilized in the previous task such as:
+
+<br/>
+<img src="https://i.imgur.com/alPUPRU.png" height="45%" width="55%" alt="JavaScript program to grab user's cookies"/>
 <br />
 
+
+<br/>
+<img src="https://i.imgur.com/ZEb8Y9O.png" height="85%" width="85%" alt="Edit Alice's profile to enter JS script"/>
+<br />
+
+Again, I will insert the revised code into the '<b>Brief description</b>' field on Alice's profile page. Once I finish pasting, I scroll down and click the '<b>Save</b>' button. Once it refreshes, the alert window automatically appears. This time with the user's cookies displayed in the alert window.
+<br/>
+<img src="https://i.imgur.com/orWm8XM.png" height="85%" width="85%" alt="Alert box windows displaying the user's cookies"/>
+<br />
+When I attempt to view Alice’s profile from another user’s perspective the alert window displays. This 
+time with Samy’s cookies displayed.
+<br />
+<img src="https://i.imgur.com/2gFfl8y.png" height="85%" width="85%" alt="Alert box windows displaying the user's (Samy) cookies"/>
+<br />
+I'm going to save this cookie value for future purposes.
+<br />
 <h3>Analyzing DLLs</h3>
 Dynamic-Link Libraries (.dll or DLLs) are modules that contain functions (code) and data that can be used 
 by either another DLL or a program and have the ability to be used simultaneously by different data 
