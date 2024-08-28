@@ -167,126 +167,123 @@ Since the program I want to write will essentially make a victim add the attacke
 I first copy the value of the <b>__elgg_ts</b> parameter from the URL above and assign that value into the <b>__elgg_ts</b> parameter in the <b>HTTPSimpleForge.java</b> program.
 <br />
 <img src="https://i.imgur.com/cR0gA5u.png" height="95%" width="95%" alt="INSERT ELGG_TS VALUE INTO JAVA PROGRAM (SIMPLEFORGE)"/>
-<b>Place: pg 12 of 23 starting at "Same thing goes for..."</b>
 <br />
-Once it was generated after executing the <b>dlldump</b> plugin command for Volatility, I got the MD5 hash and copied it to VirusTotal.
+Same thing goes for the '<b>elgg_token</b>' value.
 <br />
-<img src="https://i.imgur.com/4Q4ZmJ4.png" height="85%" width="85%" alt="CMDLINE MD5 HASH OF DLL HASH"/>
+<img src="https://i.imgur.com/jtZzaad.png" height="85%" width="85%" alt="Grab Elgg_token value"/>
 <br />
+The last critical component of the program is grabbing the correct cookies to ensure that the code will peform as expected.
 <br />
-<img src="https://i.imgur.com/1F3ik4D.png" height="95%" width="95%" alt="VIRUSTOTAL FEED"/>
+<img src="https://i.imgur.com/hpvYCQo.png" height="85%" width="85%" alt="Ensure program runs with correct cookies"/>
 <br />
-<h3>More Findings & Conclusion</h3>
-I was curious about <i>services.exe</i> and found that it had an injection as well through the <b>malfind</b> Volatility plugin command.
+I will take the cookies I saved from the victim machine and assign them as values to the variables below in the <b>HTTPSimpleForge.java</b> program.
 <br />
-<img src="https://i.imgur.com/ymUuGhW.png" height="80%" width="80%" alt="VOLATILITY MALFIND CMD"/>
+<img src="https://i.imgur.com/hY59fTQ.png" height="85%" width="85%" alt="Assigned saved cookies into variables in HTTPSimpleForge.java program"/>
 <br />
-I performed a <b>procdump</b> on the process and grabbed its hash. I put the hash in the VirusTotal and the scan showed that there were four flags on it.
+I save the Java program with the new changes and run the code by executing the following commands in sequence:
+<br /> <br />
+<b><i>javac HTTPSimpleForge.java</i></b>
+<br /> <br />
+<b><i>java HTTPSimpleForge</i></b> <br />
 <br />
-<img src="https://i.imgur.com/wOyRU1H.png" height="85%" width="85%" alt="VIRUSTOTAL SCAN OF SERVICES.EXE HASH"/>
+<img src="https://i.imgur.com/vHkR5On.png" height="85%" width="85%" alt="HTTP 400 Bad request code"/>
 <br />
-I looked more into <i>hxdef100.exe</i> which is short for "Hacker Defender". This process is started by <i>services.exe</i> and <i>hxdef100.exe</i> is the PPID of other processes as well.
+From execution, I received a HTTP 400 Bad Request response code, which most likely means I missed something while editing the code. I go back to the nano editor, and I notice that URL variable below the '<b>requestDetails</b>' variable holding the <b>__elgg_ts</b> and <b>__elgg_token</b> parameters is essentially the first half of the URL link that will perform the action of adding a friend on the Elgg web application. In the Java program, I replaced the placeholder with the number "39" from the first half of the "add friend" URL saved from earlier. The URL below utilized is Alice's '<b>Add friend</b>' URL.
 <br />
-<img src="https://i.imgur.com/bE0zvB9.png" height="80%" width="80%" alt="PSTREE CMD TOWARD SERVICES.EXE AND HXDEF100.EXE"/>
+<img src="https://i.imgur.com/QOtA3sN.png" height="85%" width="85%" alt="Insert 39 into URL url"/>
 <br />
-I execute the <b>filescan</b> Volatility command to find any files associated with <i>hxdef100.exe</i>. The executable is in its own created directory labeled as a rootkit.
+I save the file once the changes are made and run it again. Success, the 200 Response code is what I was 
+striving for!
 <br />
-<img src="https://i.imgur.com/8ZAy85W.png" height="90%" width="90%" alt="HXDEFROOTKIT"/>
+<img src="https://i.imgur.com/CoUaciX.png" height="85%" width="85%" alt="Successful 200 response from machine"/>
 <br />
-To confirm that <i>hxdef100.exe</i> is malicious or not, I do the same process of performing a <b>procdump</b> of the process to create an executable from memory, and then get the MD5 hash from the executable file so I can put that in VirusTotal.
+I navigate back to the Firefox window on the victim machine, logged in as Samy. I was already viewing Alice's profile before executing the <b>HTTPSimpleForge</b> program. I refreshed the page and now I see the option to remove Alice as a friend. I don't remember adding that user in the first place. I go the to the Activity page on the website and lo and behold:
 <br />
-<img src="https://i.imgur.com/sRc6qWH.png" height="90%" width="90%" alt="PROCDUMP ON HXDEF100.EXE"/>
+<img src="https://i.imgur.com/8SWgdIZ.png" height="85%" width="85%" alt="Samy is now a friend with Alice"/>
 <br />
-Here, the VirusTotal scan shows me that 60 security vendors have flagged this file as malicious. This threat is labeled as a backdoor trojan.
+<h3>Countermeasures</h3>
+Now, I will perform some configurations to see the built-in countermeasures Elgg has to defend against the XSS attacks I've procured throughout this demonstration. The first countermeasure I will activate is a custom-built security plugin, <b>HTMLawed 1.8</b>, which is on the Elgg website application itself. To activate it, I simply log in to the Elgg application as an administrator and activate it from the administrator settings.
+<br /> <br />
+I will start by logging out of Samy's Elgg account on the victim machine and I will log in as an administrator.
 <br />
-<img src="https://i.imgur.com/zJ13Vpe.png" height="90%" width="90%" alt="VIRUSTOTAL SCAN OF HXDEF100.EXE HASH"/>
-<br />
-I've come to reveal some major findings throughout the lab. Here is my hypothesis as to how this machine was compromised:
-<br />
-The Poison Ivy malware (poisonivy.exe) was emitted into the machine via the Windows Explorer browser 
-on through an FTP port, maybe port 3460 (from the <b>connscan</b> earlier) most likely through a TCP-enabled transfer file service. Somehow a malicious file containing <i>poisonivy.exe</i> was transferred into the victim's Windows XP instance and then the payload was delivered. Poisonivy could have created a run key Registry pointing to a malicious executable such as <i>hxdef100.exe</i> once it was dropped to disk. Then it executed inside the affected machine, it copies itself as critical files like <i>svchost.exe</i> to stay hidden.
-<br />
-This enables the download and installation of <i>hxdef100.exe</i> to create a backdoor in the background between different processes in the Windows XP machine or ports (via open ports found in an Nmap scan).
-<br />
-Hacker Defender or <i>hxdef100.exe</i> is a rootkit that can configure itself to connect to hidden ports on a system via netcat. It can set itself to run when the victim system boots and the file mapping name can be set when it's injected into system files. Utilizing the strings function on Kali, I found the settings section for the <i>hxdef100.exe</i> build and there are some major similarities between that and the <b>malfind</b> Volatility plugin command for PID 480.
-<br />
-<img src="https://i.imgur.com/dYEHjRv.png" height="90%" width="90%" alt="STRINGS CMD ON KALI FOR HXDEF100"/>
-<br />
-Here, I found some more configurations possibly done by the hacker showing that <i>hxdef100.exe</i> is 
-set as a backdoor shell.
-<br />
-<img src="https://i.imgur.com/hjzE0KI.png" height="90%" width="90%" alt="STRINGS CMD ON KALI FOR HXDEF100"/>
-<br />
-<br />
-It spread itself to replace or inject itself into essential Windows processes. Then <i>hxdef100.exe</i> can inject 
-itself into batch files and other processes via Alternate Data Stream. Once a backdoor is created, the 
-hacker was able to connect back to the Windows XP machine via port forwarding through a listed open 
-port utilizing netcat or <i>nc.exe</i> to create a bind shell giving the hacker a remote command prompt on the 
-Windows XP system.
-<br />
-<img src="https://i.imgur.com/A7tJZ9D.png" height="95%" width="95%" alt="NETCAT FOUND IN PSTREE COMD"/>
-<br />
-This provides more malicious activities such as the opportunity to create new passwords for accounts, lock 
-users out of their own system, and leave critical damage to a machine.
-<br />
-<br />
-Throughout this demonstration, I utilized a commonly used memory analysis tool to scan, connect, 
-identify, and confer on the running processes from this memory image. The compromised machine 
-did indeed have malicious activity going on. I found a backdoor with root-like (superuser) privileges that 
-took advantage of the machine to gain access to Windows XP.
-
-<h3>References</h3>
-Balapure, Aditya. “Memory Forensics and Analysis Using Volatility.” Infosec Resources, 13 May 2021, 
-resources.infosecinstitute.com/topic/memory-forensics-and-analysis-using-volatility/.
-<br />
-<br />
-Chaturvedi, A. (2010, December 1). Playing around with HXDEF rootkit. Playing Around with HXDEF Rootkit. 
-Retrieved April 2, 2023, from http://anadisays.blogspot.com/2010/11/playing-around-with-hxdef
-rootkit.html
-<br />
+<img src="https://i.imgur.com/oGxnry7.png" height="75%" width="75%" alt="LOG OUT OF SAMY'S SESSION"/>
 <br />
 
-Corporation, M. (n.d.). Microsoft. threat description - Microsoft Security Intelligence. Retrieved April 2, 
-2023, from https://www.microsoft.com/en-us/wdsi/threats/malware-encyclopedia
-description?Name=Backdoor%3AWin32%2FPoisonivy.I&threatId=-2147363597
 <br />
+<img src="https://i.imgur.com/VlB5Zph.png" height="85%" width="85%" alt="LOG IN AS ADMIN"/>
 <br />
-
-evild3ad. “Home.” evild3ad.Com, 20 Sept. 2011, evild3ad.com/956/volatility-memory-forensics-basic
-usage-for-malware-analysis/.
+Once I'm logged in, I click <b>Administration</b> on the top menu (blue ribbon) > locate the right panel and click plugins > select <b>Security and Spam</b> in the dropdown menu > click <b>Filter</b>.
 <br />
+<img src="https://i.imgur.com/aKmuNfU.png" height="80%" width="80%" alt="CLICK PLUGINS UNDER CONFIGURE"/>
 <br />
 
-eXPlorer, Hack. “How to Use Volatility - Memory Analysis for Beginners.” YouTube, 24 Jan. 2020, 
-youtu.be/eluS7_eSm8M.
 <br />
+<img src="https://i.imgur.com/REnY0N0.png" height="85%" width="85%" alt="ACTIVATE HTMLAWED 1.8"/>
 <br />
-
-Hat, Black. “Investigating Malware Using Memory Forensics - A Practical Approach.” YouTube, 14 Jan. 2020, 
-youtu.be/BMFCdAGxVN4. 
+Now that the plugin is activated. I want to demonstrate its functionality against the first XSS attack I attempted. I will repeat the process for Task 1 to create an alert window with JavaScript. I enter the code into the '<b>Brief description</b>' field and click <b>Save</b>.
 <br />
+<img src="https://i.imgur.com/7Ffra9v.png" height="60%" width="60%" alt="Attempt alert window XSS attack"/>
 <br />
 
-Linux, Kali. “Volatolity -- Digial Forensic Testing of RAM on Kali Linux.” Best Kali Linux Tutorials, 11 Dec. 
-2021, www.kalilinux.in/2021/03/volatolity-digial-forensic-testing-of.html. 
+<br />
+<img src="https://i.imgur.com/7Ffra9v.png" height="60%" width="60%" alt="Failed XSS attempt with Alert window on brief description"/>
+<br />
+It seems that input validation countermeasures has kicked in. The input JavaScript code is now output set as regular plaintext and there is no alert window in sight. Now, I will attempt to do the same thing with the process to display the user's cookies in an alert window.
+<br />
+<img src="https://i.imgur.com/kBSExGz.png" height="50%" width="50%" alt="Cookie display XSS attack attempt"/>
 <br />
 <br />
+<img src="https://i.imgur.com/LBlUeH9.png" height="50%" width="50%" alt="Cookies XSS successful failed attempt"/>
+<br />
+<br />
+Once again, the input validation from the plugin is functioning well against my cross-site scripting efforts. <br /> <br />
+There is one more countermeasure, a built-in PHP method called <b>htmlspecialchars()</b>, which is used to encode the special characters in user input, such as encoding "<" to "&lt, ">" to "&gt", etc. The function call, <b>htmlspecialchars</b> can be found in <b>text.php</b>, <b>tagcloud.php</b>, <b>tags.php</b>, <b>access.php</b>, <b>tag.php</b>, <b>friendlytime.php</b>, <b>url.php</b>, <b>dropdown.php</b>, <b>email.php</b>, and <b>confirmlink.php</b> files. I will attempt to activate this countermeasure by uncommenting the <b>htmlspecialchars</b> function call(s) in each file. I can find the path to the <b>/var/www/xsslabelgg.com/elgg</b> directory provided in the '<b>Advanced Settings</b>' page in the <b>Administration</b> page on the Elgg web application.
+<br />
+<img src="https://i.imgur.com/XEQhOY7.png" height="90%" width="90%" alt="/var/www/xsslabelgg.com/elgg location on Admin page"/>
+<br />
+On the vuln-site machine, I will navigate to the provided directory and find my way to <b>/var/www/xsslabelgg.com/elgg/views/default/output</b>.
+<br />
+<img src="https://i.imgur.com/j22ojkz.png" height="90%" width="90%" alt="/var/www/xsslabelgg.com/elgg/view location"/>
+<br /
+<br />
+<img src="https://i.imgur.com/R2ADKOY.png" height="95%" width="95%" alt="/var/www/xsslabelgg.com/elgg/view/output location"/>
+<br />
+I will attempt to edit the various <b>.php</b> files by uncommenting the <b>htmlspecialchars()</b> function call to activate the second custom-built countermeasure. <br /> <br />
 
-Poisonivy. PoisonIvy, Software S0012 | MITRE ATT&CK®. (n.d.). Retrieved April 1, 2023, from 
-https://attack.mitre.org/software/S0012/ 
+<b>text.php</b>
+<br />
+<img src="https://i.imgur.com/9c3riPO.png" height="95%" width="95%" alt="text.php uncommenting"/>
 <br />
 <br />
+<img src="https://i.imgur.com/Kopsjmk.png" height="95%" width="95%" alt="text.php uncommenting"/>
+<br />
+<br />
+<img src="https://i.imgur.com/VHBV8BH.png" height="85%" width="85%" alt="text.php uncommenting"/>
+<br />
+As expected, it may be difficult to edit all of these <b>.php</b> files with varying levels of permission. So, I might not be able to edit any of the previously listed <b>.php</b> files due to permission denial.
+<br />
+<img src="https://i.imgur.com/9V0GtEL.png" height="85%" width="85%" alt="tagcloud.php uncommenting attempt"/>
+<br />
+<br />
+<br />
+<b>confirmlink.php</b>
+<br />
+<img src="https://i.imgur.com/ihNnkg8.png" height="85%" width="85%" alt="confirmlink.php uncommenting attempt"/>
+<br />
+<br />
+<img src="https://i.imgur.com/1FowfKq.png" height="85%" width="85%" alt="confirmlink.php uncommenting attempt"/>
+<br />
+<br />
+<img src="https://i.imgur.com/r4gOVfx.png" height="85%" width="85%" alt="confirmlink.php uncommenting attempt"/>
+<br />
+Nonetheless, uncommenting where I was attempting would've enabled encoding countermeasures against XSS attacks. Elgg will look at certain special character input coming into the application and ensure that the output of that is properly encoded to avoid the consequences of poor input validation.
 
-Poisonivy. POISONIVY - Threat Encyclopedia. (n.d.). Retrieved April 1, 2023, from 
-https://www.trendmicro.com/vinfo/us/threat-encyclopedia/malware/poisonivy
-<br />
-<br />
-
-P4N4Rd1. “First Steps to Volatile Memory Analysis.” Medium, Medium, 13 Jan. 2019, 
-medium.com/@zemelusa/first-steps-to-volatile-memory-analysis-dcbd4d2d56a1. 
-<br />
-<br />
-
-v4L. “Hacker Defender HXDEF Rootkit Tutorial in 10 Steps [Nostalgia].” Ethical Hacking Tutorials, Tips and 
-Tricks, 18 Mar. 2014, www.hacking-tutorial.com/hacking-tutorial/hacker-defender-hxdef-rootkit
-tutorial-in-10-steps-nostalgia/#sthash.5Bs5vvB2.U7N3Sh54.dpbs.
+<h3>Conclusion</h3>
+This experience has increased my understanding of cross-site 
+scripting attacks and gain somewhat of a hands-on experience with methods used to compromise 
+victim machines. I find this heavily relevant to real-world security because it’s critical for those 
+defending against these attacks to understand the tactics, techniques, and procedures that 
+attackers use to undermine web application flaws and vulnerabilities. The effectiveness of XSS 
+techniques tools depends on the web application. If the web application has poor input validation 
+with a lack of adequate security countermeasures, then a cross-site scripting attack would be very 
+effective. 
